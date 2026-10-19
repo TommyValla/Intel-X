@@ -187,7 +187,7 @@ class DossierEditor(QFrame):
         )
 
         self.editor.textChanged.connect(
-            self.update_preview
+            self.on_text_changed
         )
 
         # -------------------------------------------------
@@ -201,28 +201,35 @@ class DossierEditor(QFrame):
     # -----------------------------------------------------
 
     def load(self):
-
         try:
-
             content = load_dossier(
                 self.table,
                 self.record_id,
                 self.name
             )
 
-            self.editor.setPlainText(
-                content
-            )
+            self.editor.setPlainText(content)
+            self.editor.document().setModified(False)
 
+            self.save_button.setText("Save")
             self.update_preview()
 
         except Exception as error:
-
             QMessageBox.critical(
                 self,
                 "Dossier error",
                 f"Could not load dossier:\n\n{error}"
             )
+
+
+    # -----------------------------------------------------
+    # Text changes
+    # -----------------------------------------------------
+
+    def on_text_changed(self):
+        self.editor.document().setModified(True)
+        self.save_button.setText("Save")
+        self.update_preview()
 
     # -----------------------------------------------------
     # Preview
@@ -247,47 +254,53 @@ class DossierEditor(QFrame):
     # -----------------------------------------------------
 
     def save(self):
-
         content = self.editor.toPlainText()
 
         try:
-
             save_dossier(
                 self.table,
                 self.record_id,
                 content
             )
 
-            self.save_button.setText(
-                "Saved"
-            )
+            self.editor.document().setModified(False)
+            self.save_button.setText("Saved")
+            return True
 
         except Exception as error:
-
             QMessageBox.critical(
                 self,
                 "Dossier error",
                 f"Could not save dossier:\n\n{error}"
             )
+            return False
 
-# delete this
-if __name__ == "__main__":
+    def maybe_save_changes(self):
+        if not self.editor.document().isModified():
+            return True
 
-    from PySide6.QtWidgets import QApplication
+        answer = QMessageBox.question(
+            self,
+            "Unsaved Changes",
+            "This dossier has unsaved changes. Do you want to save them?",
+            QMessageBox.Save
+            | QMessageBox.Discard
+            | QMessageBox.Cancel,
+            QMessageBox.Save
+        )
 
-    app = QApplication([])
+        if answer == QMessageBox.Save:
+            return self.save()
 
-    editor = DossierEditor(
-        "people",
-        1,
-        "Vladimir Putin"
-    )
+        if answer == QMessageBox.Discard:
+            self.editor.document().setModified(False)
+            return True
 
-    editor.resize(
-        1400,
-        800
-    )
+        return False
 
-    editor.show()
 
-    app.exec()
+    def closeEvent(self, event):
+        if self.maybe_save_changes():
+            event.accept()
+        else:
+            event.ignore()

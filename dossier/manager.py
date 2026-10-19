@@ -1,56 +1,7 @@
-from pathlib import Path
-
-
-# ---------------------------------------------------------
-# Base directories
-# ---------------------------------------------------------
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-
-DOSSIERS_DIR = BASE_DIR / "dossiers"
-ASSETS_DIR = BASE_DIR / "assets" / "dossiers"
-
-
-# ---------------------------------------------------------
-# Dossier paths
-# ---------------------------------------------------------
-
-def get_dossier_path(table, record_id):
-    """
-    Return the Markdown file path for an entity.
-    """
-
-    if table == "people":
-        folder = DOSSIERS_DIR / "people"
-
-    elif table == "organizations":
-        folder = DOSSIERS_DIR / "organizations"
-
-    else:
-        raise ValueError(
-            f"Unknown entity table: {table}"
-        )
-
-    return folder / f"{record_id}.md"
-
-
-def get_asset_directory(table, record_id):
-    """
-    Return the asset directory for an entity.
-    """
-
-    if table == "people":
-        folder = ASSETS_DIR / "people"
-
-    elif table == "organizations":
-        folder = ASSETS_DIR / "organizations"
-
-    else:
-        raise ValueError(
-            f"Unknown entity table: {table}"
-        )
-
-    return folder / str(record_id)
+from data.project import (
+    get_dossier_path,
+    get_asset_directory,
+)
 
 
 # ---------------------------------------------------------

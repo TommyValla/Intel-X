@@ -1,6 +1,10 @@
 import sys
 
+from PySide6.QtGui import QAction
+
 from datetime import datetime
+
+from data.project import open_project
 
 from data.database import (
     get_people,
@@ -27,6 +31,8 @@ from PySide6.QtWidgets import (
     QTreeWidgetItem,
     QTableWidget,
     QTableWidgetItem,
+    QFileDialog,
+    QInputDialog,
     QTextEdit,
     QWidget,
     QHBoxLayout,
@@ -42,10 +48,14 @@ from PySide6.QtWidgets import (
 
 
 class MainWindow(QMainWindow):
-    def __init__(self):
+    
+    def __init__(self, project_metadata=None):
         super().__init__()
 
-        self.setWindowTitle("Intel-X")
+        self.project_metadata = project_metadata or {}
+        self.update_window_title()
+        self.create_menu_bar()
+
 
         # Currently selected database record
         self.current_id = None
@@ -328,6 +338,230 @@ class MainWindow(QMainWindow):
 
         self.load_tree()
 
+
+    # ======================================================
+    # PROJECT AND MENU BAR
+    # ======================================================
+
+    def update_window_title(self):
+        project_name = self.project_metadata.get(
+            "name", "Untitled Project"
+        )
+        self.setWindowTitle(f"Intel-X — {project_name}")
+
+    def create_menu_bar(self):
+        file_menu = self.menuBar().addMenu("File")
+
+        self.new_project_action = QAction("New Project...", self)
+        self.new_project_action.triggered.connect(self.new_project)
+        file_menu.addAction(self.new_project_action)
+
+        self.open_project_action = QAction(
+            "Open Project...", self
+        )
+        self.open_project_action.triggered.connect(
+            self.switch_project
+        )
+        file_menu.addAction(self.open_project_action)
+
+        self.project_info_action = QAction(
+            "Project Information", self
+        )
+        self.project_info_action.triggered.connect(
+            self.show_project_info
+        )
+        file_menu.addAction(self.project_info_action)
+
+        file_menu.addSeparator()
+
+        exit_action = QAction("Exit", self)
+        exit_action.triggered.connect(self.close)
+        file_menu.addAction(exit_action)
+
+    def show_project_info(self):
+        project_name = self.project_metadata.get(
+            "name", "Untitled Project"
+        )
+        project_version = self.project_metadata.get(
+            "version", "Unknown"
+        )
+
+        from data.project import get_project_root, get_database_path
+
+        QMessageBox.information(
+            self,
+            "Project Information",
+            f"Name: {project_name}\n"
+            f"Version: {project_version}\n"
+            f"Folder: {get_project_root()}\n"
+            f"Database: {get_database_path()}",
+        )
+
+    def switch_project(self):
+        project_folder = QFileDialog.getExistingDirectory(
+            self,
+            "Open Intel-X Project",
+            "",
+        )
+
+        if not project_folder:
+            return
+
+        # Validate before changing the active project.
+        try:
+            from data.project import validate_project
+
+            validate_project(project_folder)
+
+        except (ValueError, OSError) as error:
+            QMessageBox.critical(
+                self,
+                "Could Not Open Project",
+                str(error),
+            )
+            return
+
+        # Warn if a dossier editor is currently open.
+        if (
+            self.dossier_editor is not None
+            and self.dossier_editor.isVisible()
+        ):
+            answer = QMessageBox.question(
+                self,
+                "Switch Project",
+                "Close the open dossier editor and switch "
+                "projects? Save any unsaved dossier changes first.",
+                QMessageBox.StandardButton.Yes
+                | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+
+            if answer != QMessageBox.StandardButton.Yes:
+                return
+
+        # Activate the new project.
+        try:
+            metadata = open_project(project_folder)
+        except (ValueError, OSError) as error:
+            QMessageBox.critical(
+                self,
+                "Could Not Open Project",
+                str(error),
+            )
+            return
+
+        self.project_metadata = metadata
+
+        # Close overlays from the previous project.
+        if self.dossier_editor is not None:
+            self.dossier_editor.close()
+            self.dossier_editor = None
+
+        self.edge_inspector.hide()
+
+        # Clear selection and attribute display.
+        self.current_id = None
+        self.current_table = None
+        self.original_values = {}
+
+        self.attributes_table.clearContents()
+        self.attributes_table.setRowCount(0)
+
+        self.dossier_button.setVisible(False)
+
+        # Reset the network to show the new project's data.
+        self.network_view.show_all()
+
+        self.load_tree()
+        self.refresh_network()
+        self.update_window_title()
+
+    def new_project(self):
+        # Choose the parent directory.
+        parent_folder = QFileDialog.getExistingDirectory(
+            self,
+            "Choose Location for New Project",
+            "",
+        )
+
+        if not parent_folder:
+            return
+
+        # Ask for the project name.
+        project_name, accepted = QInputDialog.getText(
+            self,
+            "New Project",
+            "Project name:",
+        )
+
+        if not accepted:
+            return
+
+        project_name = project_name.strip()
+
+        if not project_name:
+            QMessageBox.warning(
+                self,
+                "Invalid Project Name",
+                "Please enter a project name.",
+            )
+            return
+
+        # Warn about an open dossier editor before switching.
+        if (
+            self.dossier_editor is not None
+            and self.dossier_editor.isVisible()
+        ):
+            if not self.dossier_editor.maybe_save_changes():
+                return
+
+        # Create and activate the project.
+        try:
+            from data.project import create_project
+
+            metadata = create_project(
+                parent_folder,
+                project_name,
+            )
+
+        except (ValueError, OSError) as error:
+            QMessageBox.critical(
+                self,
+                "Could Not Create Project",
+                str(error),
+            )
+            return
+
+        # Update the window's project information.
+        self.project_metadata = metadata
+
+        # Close the old dossier editor.
+        if self.dossier_editor is not None:
+            self.dossier_editor.close()
+            self.dossier_editor = None
+
+        self.edge_inspector.hide()
+
+        # Reset the current selection and attributes.
+        self.current_id = None
+        self.current_table = None
+        self.original_values = {}
+
+        self.attributes_table.clearContents()
+        self.attributes_table.setRowCount(0)
+        self.dossier_button.setVisible(False)
+
+        # Refresh the interface for the new project.
+        self.network_view.show_all()
+        self.load_tree()
+        self.refresh_network()
+        self.update_window_title()
+
+        QMessageBox.information(
+            self,
+            "Project Created",
+            f"Project '{metadata['name']}' was created successfully.",
+        )
 
     def show_edges(self):
 
@@ -959,9 +1193,32 @@ class MainWindow(QMainWindow):
 # APPLICATION
 # ==========================================================
 
+
 app = QApplication(sys.argv)
 
-window = MainWindow()
+while True:
+    project_folder = QFileDialog.getExistingDirectory(
+        None,
+        "Open Intel-X Project",
+        "",
+    )
+
+    # User cancelled the dialog.
+    if not project_folder:
+        sys.exit(0)
+
+    try:
+        project_metadata = open_project(project_folder)
+        break
+
+    except (ValueError, OSError) as error:
+        QMessageBox.critical(
+            None,
+            "Could Not Open Project",
+            str(error),
+        )
+
+window = MainWindow(project_metadata)
 window.show()
 
 app.exec()

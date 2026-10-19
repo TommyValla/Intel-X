@@ -16,3 +16,13 @@ env/
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Generated network exports
+exports/*.graphml
+exports/obsidian/
+
+# Temporary project-creation test data
+data/creation_test_project/
+
+# Local dossier test data
+dossiers/people/2.md
