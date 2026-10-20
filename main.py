@@ -6,6 +6,10 @@ from datetime import datetime
 
 from data.project import create_project, open_project
 
+from exports.obsidian import export_obsidian
+from exports.gephi import export_graphml
+from pathlib import Path
+
 from data.database import (
     get_people,
     get_organizations,
@@ -496,6 +500,24 @@ class MainWindow(QMainWindow):
             self.show_project_info
         )
         file_menu.addAction(self.project_info_action)
+
+        export_menu = file_menu.addMenu("Export")
+
+        self.export_obsidian_action = QAction(
+            "Export to Obsidian...", self
+        )
+        self.export_obsidian_action.triggered.connect(
+            self.export_to_obsidian
+        )
+        export_menu.addAction(self.export_obsidian_action)
+
+        self.export_gephi_action = QAction(
+            "Export to Gephi...", self
+        )
+        self.export_gephi_action.triggered.connect(
+            self.export_to_gephi
+        )
+        export_menu.addAction(self.export_gephi_action)
 
         file_menu.addSeparator()
 
@@ -1314,6 +1336,66 @@ class MainWindow(QMainWindow):
             self.network_graph
         )
 
+    def export_to_obsidian(self):
+        output_dir = QFileDialog.getExistingDirectory(
+            self,
+            "Choose Obsidian Export Folder",
+        )
+
+        if not output_dir:
+            return
+
+        try:
+            result = export_obsidian(output_dir)
+
+            QMessageBox.information(
+                self,
+                "Export Complete",
+                f"Obsidian export saved to:\n{result}",
+            )
+
+        except Exception as error:
+            QMessageBox.critical(
+                self,
+                "Export Failed",
+                str(error),
+            )
+
+    def export_to_gephi(self):
+        default_path = str(
+            Path("exports") / "intelx_network.graphml"
+        )
+
+        output_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Export to Gephi",
+            default_path,
+            "GraphML files (*.graphml)",
+        )
+
+        if not output_path:
+            return
+
+        if not output_path.lower().endswith(".graphml"):
+            output_path += ".graphml"
+
+        try:
+            result = export_graphml(output_path)
+
+            QMessageBox.information(
+                self,
+                "Export Complete",
+                f"GraphML export saved to:\n{result}",
+            )
+
+        except Exception as error:
+            QMessageBox.critical(
+                self,
+                "Export Failed",
+                str(error),
+            )
+
+    
 # ==========================================================
 # APPLICATION
 # ==========================================================
