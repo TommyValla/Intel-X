@@ -4,7 +4,7 @@ from PySide6.QtGui import QAction
 
 from datetime import datetime
 
-from data.project import open_project
+from data.project import create_project, open_project
 
 from data.database import (
     get_people,
@@ -45,6 +45,131 @@ from PySide6.QtWidgets import (
     QComboBox,
     QSlider
 )
+
+
+class StartWindow(QMainWindow):
+
+    def __init__(self):
+        super().__init__()
+
+        self.main_window = None
+
+        self.setWindowTitle("Intel-X")
+        self.resize(560, 360)
+
+        # Main layout
+        central_widget = QWidget()
+        layout = QVBoxLayout(central_widget)
+
+        layout.setContentsMargins(48, 40, 48, 40)
+        layout.setSpacing(16)
+
+        # Title
+        title = QLabel("Intel-X")
+        title.setAlignment(Qt.AlignCenter)
+        title.setStyleSheet("font-size: 28px; font-weight: bold;")
+
+        subtitle = QLabel(
+            "Intelligence research and network exploration"
+        )
+        subtitle.setAlignment(Qt.AlignCenter)
+        subtitle.setWordWrap(True)
+
+        layout.addStretch()
+        layout.addWidget(title)
+        layout.addWidget(subtitle)
+        layout.addSpacing(20)
+
+        # Create project
+        self.create_button = QPushButton("New Project")
+        self.create_button.setMinimumHeight(42)
+        self.create_button.clicked.connect(
+            self.create_new_project
+        )
+
+        # Open project
+        self.open_button = QPushButton("Open Project")
+        self.open_button.setMinimumHeight(42)
+        self.open_button.clicked.connect(
+            self.open_existing_project
+        )
+
+        layout.addWidget(self.create_button)
+        layout.addWidget(self.open_button)
+        layout.addStretch()
+
+        self.setCentralWidget(central_widget)
+
+    def create_new_project(self):
+        # Select the parent directory in which the project
+        # folder will be created.
+        parent_folder = QFileDialog.getExistingDirectory(
+            self,
+            "Choose Location for New Project"
+        )
+
+        if not parent_folder:
+            return
+
+        project_name, accepted = QInputDialog.getText(
+            self,
+            "New Project",
+            "Project name:"
+        )
+
+        if not accepted:
+            return
+
+        try:
+            metadata = create_project(
+                parent_folder,
+                project_name
+            )
+
+            self.launch_project(metadata)
+
+        except Exception as error:
+            QMessageBox.critical(
+                self,
+                "Could Not Create Project",
+                str(error)
+            )
+
+    def open_existing_project(self):
+        project_folder = QFileDialog.getExistingDirectory(
+            self,
+            "Select Intel-X Project Folder"
+        )
+
+        if not project_folder:
+            return
+
+        try:
+            metadata = open_project(project_folder)
+            self.launch_project(metadata)
+
+        except Exception as error:
+            QMessageBox.critical(
+                self,
+                "Could Not Open Project",
+                str(error)
+            )
+
+    def launch_project(self, metadata):
+        try:
+            self.main_window = MainWindow(metadata)
+            self.main_window.show()
+            self.hide()
+
+        except Exception as error:
+            self.main_window = None
+
+            QMessageBox.critical(
+                self,
+                "Could Not Launch Intel-X",
+                str(error)
+            )
+
 
 
 class MainWindow(QMainWindow):
@@ -1193,32 +1318,11 @@ class MainWindow(QMainWindow):
 # APPLICATION
 # ==========================================================
 
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
 
-app = QApplication(sys.argv)
+    start_window = StartWindow()
+    start_window.show()
 
-while True:
-    project_folder = QFileDialog.getExistingDirectory(
-        None,
-        "Open Intel-X Project",
-        "",
-    )
+    sys.exit(app.exec())
 
-    # User cancelled the dialog.
-    if not project_folder:
-        sys.exit(0)
-
-    try:
-        project_metadata = open_project(project_folder)
-        break
-
-    except (ValueError, OSError) as error:
-        QMessageBox.critical(
-            None,
-            "Could Not Open Project",
-            str(error),
-        )
-
-window = MainWindow(project_metadata)
-window.show()
-
-app.exec()
