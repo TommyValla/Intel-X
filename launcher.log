@@ -1,0 +1,28 @@
+FOCUS NODE: ('people', 5)
+RADIUS: 1
+FOCUSED NODES:
+('people', 5) Igor Kostyukov
+('organizations', 3) Main Intelligence Directorate (GRU)
+FOCUS NODE: ('people', 5)
+RADIUS: 2
+FOCUSED NODES:
+('organizations', 10) Ministry of Defence (MOD)
+('people', 5) Igor Kostyukov
+('organizations', 25) Third directorate (GRU-3)
+('organizations', 31) Ninth Directorate (GRU-9)
+('organizations', 28) Sixth Directorate (GRU-6)
+('organizations', 34) Twelfth Directorate (GRU-12)
+('organizations', 37) Operational and Technical Directorate (GRU-Ops)
+('organizations', 3) Main Intelligence Directorate (GRU)
+('organizations', 24) Second Directorate (GRU-2)
+('organizations', 27) Fifth Directorate (GRU-5)
+('organizations', 33) Eleventh Directorate (GRU-11)
+('organizations', 30) Eigth Directorate (GRU-8)
+('organizations', 36) Space Intelligence Directorate (GRU-space)
+('people', 3) Eduard Shishmakov
+('organizations', 26) Fourth Directorate (GRU-4)
+('organizations', 23) First Directorate (GRU-1)
+('organizations', 29) Seventh Directorate (GRU-7)
+('organizations', 32) Tenth Directorate (GRU-10)
+('organizations', 38) External Relations Department (GRU-ext)
+('organizations', 35) Fourteenth directorate (GRU-14)

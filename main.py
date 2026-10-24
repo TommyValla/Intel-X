@@ -1,6 +1,6 @@
 import sys
 
-from PySide6.QtGui import QAction
+from PySide6.QtGui import QAction, QIcon
 
 from datetime import datetime
 
@@ -56,6 +56,10 @@ class StartWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
+        self.setWindowIcon(
+            QIcon("assets/knowledge-graph.ico")
+        )
+
         self.main_window = None
 
         self.setWindowTitle("Intel-X")
@@ -105,11 +109,15 @@ class StartWindow(QMainWindow):
         self.setCentralWidget(central_widget)
 
     def create_new_project(self):
+        # Set Documents as the starting directory.
+        documents_folder = str(Path.home() / "Documents")
+
         # Select the parent directory in which the project
         # folder will be created.
         parent_folder = QFileDialog.getExistingDirectory(
             self,
-            "Choose Location for New Project"
+            "Choose Location for New Project",
+            documents_folder
         )
 
         if not parent_folder:
@@ -139,10 +147,16 @@ class StartWindow(QMainWindow):
                 str(error)
             )
 
+
     def open_existing_project(self):
+        # Set Documents as the starting directory.
+        documents_folder = str(Path.home() / "Documents")
+
+        # Select an existing Intel-X project folder.
         project_folder = QFileDialog.getExistingDirectory(
             self,
-            "Select Intel-X Project Folder"
+            "Select Intel-X Project Folder",
+            documents_folder
         )
 
         if not project_folder:
